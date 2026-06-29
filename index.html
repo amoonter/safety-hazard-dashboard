@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>安全隐患分析仪表盘 V1</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">京东航空维修安全管理</p>
+        <h1>安全隐患分析仪表盘</h1>
+        <p class="hero-copy">
+          基于安全隐患清单 R4，按一级、二级、三级过程与关联后果统计问题分布，并支持站点、隐患类型、时间区间联动分析。
+        </p>
+      </div>
+      <div class="hero-actions">
+        <label class="primary-action" for="fileInput">上传安全隐患数据文件</label>
+        <input id="fileInput" type="file" accept=".xlsx,.xls,.jsonl,.json" hidden>
+        <button id="resetFiltersBtn" class="secondary-action" type="button">重置筛选</button>
+      </div>
+    </header>
+
+    <section class="status-band" id="statusBand">
+      <div class="status-text">
+        <strong>当前状态：</strong>
+        <span id="statusMessage">请先上传安全隐患清单 R4 表格。</span>
+      </div>
+      <div class="status-meta">
+        <span id="fileNameLabel">未加载文件</span>
+      </div>
+    </section>
+
+    <section class="summary-band">
+      <article class="metric-card">
+        <span class="metric-label">隐患总数</span>
+        <strong id="metricTotal" class="metric-value">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">一级过程种类</span>
+        <strong id="metricL1Kinds" class="metric-value">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">二级过程种类</span>
+        <strong id="metricL2Kinds" class="metric-value">0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">三级过程种类</span>
+        <strong id="metricL3Kinds" class="metric-value">0</strong>
+      </article>
+    </section>
+
+    <section class="alerts-band">
+      <div class="band-header">
+        <div>
+          <h2>趋势预警</h2>
+          <p id="trendAlertSummary">上传数据后自动识别近期上升、突增和集中性问题。</p>
+        </div>
+      </div>
+      <div id="trendAlertList" class="alert-list">
+        <article class="alert-card neutral">
+          <strong>暂无趋势数据</strong>
+          <p>请先上传安全隐患清单 R4 表格。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="insights-band">
+      <article class="insight-panel">
+        <div class="band-header">
+          <div>
+            <h2>站点问题画像</h2>
+            <p id="stationProfileSummary">上传数据后自动生成站点主要问题画像。</p>
+          </div>
+        </div>
+        <div id="stationProfileList" class="insight-list">
+          <article class="insight-card neutral">
+            <strong>暂无站点画像</strong>
+            <p>请先上传安全隐患清单 R4 表格。</p>
+          </article>
+        </div>
+      </article>
+      <article class="insight-panel">
+        <div class="band-header">
+          <div>
+            <h2>重复问题识别</h2>
+            <p id="duplicateSummary">上传数据后自动识别重复问题组合。</p>
+          </div>
+        </div>
+        <div id="duplicateList" class="insight-list">
+          <article class="insight-card neutral">
+            <strong>暂无重复问题</strong>
+            <p>请先上传安全隐患清单 R4 表格。</p>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section class="filters-band">
+      <div class="band-header">
+        <h2>筛选与下钻</h2>
+        <p>筛选器作用于当前分析范围，图表点击用于过程层级下钻。</p>
+      </div>
+      <div class="filters-grid">
+        <label class="field">
+          <span>一级过程</span>
+          <select id="level1Select">
+            <option value="">未选择</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>二级过程</span>
+          <select id="level2Select">
+            <option value="">全部二级过程</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>三级过程</span>
+          <select id="level3Select">
+            <option value="">全部三级过程</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>隐患名称</span>
+          <input id="hazardNameInput" type="search" placeholder="输入关键词模糊搜索">
+        </label>
+        <label class="field">
+          <span>站点/城市</span>
+          <select id="stationSelect">
+            <option value="">全部站点</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>隐患类型</span>
+          <select id="hazardTypeSelect">
+            <option value="">全部类型</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>关联的危险源</span>
+          <select id="hazardSourceSelect">
+            <option value="">全部危险源</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>核心风险</span>
+          <select id="coreRiskSelect">
+            <option value="">全部核心风险</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>关联的风险控制措施</span>
+          <select id="riskControlSelect">
+            <option value="">全部风险控制措施</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>关联的后果</span>
+          <select id="consequenceSelect">
+            <option value="">全部后果</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>发现时间起</span>
+          <input id="dateStartInput" type="date">
+        </label>
+        <label class="field">
+          <span>发现时间止</span>
+          <input id="dateEndInput" type="date">
+        </label>
+        <div class="field actions-field">
+          <span>层级控制</span>
+          <div class="inline-actions">
+            <button id="clearLevel2Btn" type="button">返回一级</button>
+            <button id="clearLevel3Btn" type="button">返回二级</button>
+            <button id="resetDrillBtn" type="button">恢复默认模块</button>
+          </div>
+        </div>
+      </div>
+      <div class="selection-strip">
+        <span>当前一级过程：<strong id="selectedLevel1Label">未选择</strong></span>
+        <span>当前二级过程：<strong id="selectedLevel2Label">未选择</strong></span>
+        <span>当前三级过程：<strong id="selectedLevel3Label">未选择</strong></span>
+        <span>当前核心风险：<strong id="selectedCoreRiskLabel">未选择</strong></span>
+        <span>当前风险控制措施：<strong id="selectedRiskControlLabel">未选择</strong></span>
+        <span>当前后果：<strong id="selectedConsequenceLabel">未选择</strong></span>
+      </div>
+    </section>
+
+    <section class="charts-band">
+      <article class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <h2>一级过程问题数量</h2>
+            <p>基于站点、隐患类型和时间区间筛选后的总览。</p>
+          </div>
+        </div>
+        <div id="level1Chart" class="chart-container"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <h2>二级过程问题数量</h2>
+            <p id="level2Subtitle">请选择一级过程。</p>
+          </div>
+        </div>
+        <div id="level2Chart" class="chart-container"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <h2>三级过程问题数量</h2>
+            <p id="level3Subtitle">请选择二级过程。</p>
+          </div>
+        </div>
+        <div id="level3Chart" class="chart-container"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <h2>关联后果问题数量</h2>
+            <p id="consequenceSubtitle">当前统计范围：全部记录</p>
+          </div>
+        </div>
+        <div id="consequenceChart" class="chart-container"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <h2>核心风险问题数量</h2>
+            <p id="coreRiskSubtitle">当前统计范围：全部记录</p>
+          </div>
+        </div>
+        <div id="coreRiskChart" class="chart-container"></div>
+      </article>
+      <article class="chart-panel">
+        <div class="panel-header">
+          <div>
+            <h2>风险控制措施问题数量</h2>
+            <p id="riskControlSubtitle">当前统计范围：全部记录</p>
+          </div>
+        </div>
+        <div id="riskControlChart" class="chart-container"></div>
+      </article>
+    </section>
+
+    <section class="table-band">
+      <div class="band-header">
+        <h2>命中隐患明细</h2>
+        <p id="detailCountText">当前命中 0 条记录。</p>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>隐患编号</th>
+              <th>隐患名称</th>
+              <th>站点/城市</th>
+              <th>隐患类型</th>
+              <th>一级过程</th>
+              <th>二级过程</th>
+              <th>三级过程</th>
+              <th>发现时间</th>
+              <th>关联的危险源</th>
+              <th>核心风险</th>
+              <th>关联的风险控制措施</th>
+              <th>关联的后果</th>
+              <th>原因分析</th>
+              <th>控制措施</th>
+            </tr>
+          </thead>
+          <tbody id="detailTableBody">
+            <tr class="empty-row">
+              <td colspan="14">请先上传安全隐患清单 R4 表格。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
