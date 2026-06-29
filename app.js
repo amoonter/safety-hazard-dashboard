@@ -786,7 +786,6 @@ function renderStationProfiles(records) {
     <article class="insight-card">
       <div class="insight-card-head">
         <strong>${escapeHtml(profile.station)}</strong>
-        <span class="station-count-badge">${profile.count} &#26465;</span>
       </div>
       <dl>
         <dt>二级过程数量第1</dt><dd>${formatCountItem(profile.topLevel2[0])}</dd>
@@ -817,7 +816,7 @@ function formatCountItem(item) {
   if (!item) {
     return "-";
   }
-  return `<span class="count-item-name">${escapeHtml(item.name)}</span><span class="count-item-badge">&#65288;${item.value}&#26465;&#65289;</span>`;
+  return escapeHtml(item.name);
 }
 
 function renderDuplicateProblems(records) {
