@@ -227,7 +227,7 @@ input {
 
 .insight-card dl {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 150px minmax(0, 1fr);
   gap: 8px 10px;
   margin: 0;
 }
@@ -235,6 +235,7 @@ input {
 .insight-card dt {
   color: var(--text-muted);
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .insight-card dd {
